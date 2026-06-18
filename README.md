@@ -1,118 +1,102 @@
-# Store Rating Frontend
+# Store Rating API - Backend
 
-React 19 + TypeScript frontend for the Store Rating Management System.
+FastAPI backend for the Store Rating Management System with MySQL 8.0.
 
 ## Tech Stack
 
-- React 19
-- TypeScript
-- Vite
-- Tailwind CSS
-- Zustand (State Management)
-- React Router DOM
-- Axios
-- React Hook Form
-- Zod (Validation)
-- Lucide React (Icons)
-- Sonner (Toast Notifications)
+- FastAPI
+- SQLAlchemy ORM
+- Alembic Migrations
+- MySQL 8.0
+- JWT Authentication
+- Pydantic Validation
+- bcrypt Password Hashing
 
 ## Setup
 
-1. Install dependencies:
+1. Create a virtual environment:
 ```bash
-npm install
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-2. Configure environment variables in `.env`:
-```
-VITE_API_URL=http://localhost:8000
-```
-
-3. Start the development server:
+2. Install dependencies:
 ```bash
-npm run dev
+pip install -r requirements.txt
 ```
 
-The app will be available at `http://localhost:5173`
+3. Configure environment variables in `.env`:
+```
+DATABASE_URL=mysql+pymysql://root:password@localhost:3306/store_rating_db
+SECRET_KEY=your-secret-key-here
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+ALGORITHM=HS256
+```
 
-## Build for Production
+4. Create the MySQL database:
+```sql
+CREATE DATABASE store_rating_db;
+```
 
+5. Run migrations:
 ```bash
-npm run build
-npm run preview
+alembic upgrade head
 ```
 
-## Features
+6. Start the server:
+```bash
+uvicorn main:app --reload
+```
+
+The API will be available at `http://localhost:8000`
+
+## API Documentation
+
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
+
+## Database Schema
+
+### Tables
+- **users**: User accounts with roles (ADMIN, USER, STORE_OWNER)
+- **stores**: Store information with owner relationship
+- **ratings**: Store ratings with unique constraint per user per store
+
+### Constraints
+- One user can submit only one rating per store
+- Rating value must be between 1 and 5
+- Email must be unique
+- Cascade deletion enabled
+- Indexes on email, role, store_id, user_id, rating
+
+## API Endpoints
 
 ### Authentication
-- Login with email/password
-- User registration with role selection (USER, STORE_OWNER)
-- JWT token-based authentication
-- Protected routes with role-based access control
+- `POST /api/v1/auth/login` - Login with email/password
+- `POST /api/v1/auth/register` - Register new user
+- `GET /api/v1/users/me` - Get current user profile
 
-### User Roles
-- **ADMIN**: Full access to dashboard, user management, store management
-- **USER**: Browse stores, submit ratings, view profile
-- **STORE_OWNER**: View store statistics, manage own stores
+### Users (Admin only)
+- `GET /api/v1/users` - List users with pagination, filtering, sorting
+- `GET /api/v1/users/{id}` - Get user by ID
+- `PATCH /api/v1/users/{id}` - Update user
+- `DELETE /api/v1/users/{id}` - Delete user
 
-### Pages
+### Stores
+- `GET /api/v1/stores` - List stores with ratings (all authenticated users)
+- `GET /api/v1/stores/{id}` - Get store by ID
+- `POST /api/v1/stores` - Create store (Store Owner/Admin)
+- `PATCH /api/v1/stores/{id}` - Update store (Owner/Admin)
+- `DELETE /api/v1/stores/{id}` - Delete store (Owner/Admin)
 
-#### Auth Pages
-- Login
-- Register
+### Ratings
+- `POST /api/v1/ratings` - Submit/update rating
+- `GET /api/v1/ratings/my-ratings` - Get my ratings
+- `GET /api/v1/ratings/store/{id}/my-rating` - Get my rating for a store
+- `PATCH /api/v1/ratings/{id}` - Update rating
+- `DELETE /api/v1/ratings/{id}` - Delete rating
 
-#### Admin Pages
-- Dashboard (Total users, stores, ratings statistics)
-- Users (List, search, filter, delete users)
-- Stores (List, search, filter, delete stores)
-- Profile
-
-#### User Pages
-- Dashboard (Browse stores, submit ratings)
-- Profile
-
-#### Store Owner Pages
-- Dashboard (Store statistics, rating breakdown)
-- Profile
-
-### UI Components
-- Reusable Button, Input, Modal components
-- Pagination component
-- Loading skeletons
-- Empty states
-- Star rating modal
-- Stat cards for dashboard
-- Responsive sidebar layout
-
-### State Management
-- Zustand stores for auth, users, stores, ratings, dashboard
-- Persist middleware for auth state
-- Optimistic updates
-
-### Form Validation
-- React Hook Form with Zod schemas
-- Client-side validation for registration
-- Password strength requirements
-
-## Project Structure
-
-```
-src/
-├── api/              # API layer (axios, authApi, userApi, etc.)
-├── components/       # Reusable components
-│   ├── common/       # Button, Input, Modal, etc.
-│   ├── dashboard/    # StatCard, charts
-│   └── modals/       # RatingModal
-├── layouts/          # Page layouts (SidebarLayout)
-├── pages/            # Page components
-│   ├── auth/         # Login, Register
-│   ├── admin/        # Admin pages
-│   ├── user/         # User pages
-│   └── owner/        # Store owner pages
-├── routes/           # Protected routes
-├── store/            # Zustand stores
-├── types/            # TypeScript types
-├── utils/            # Utility functions
-├── App.tsx           # Main app with routing
-└── main.tsx          # Entry point
-```
+### Dashboard
+- `GET /api/v1/dashboard/admin` - Admin statistics
+- `GET /api/v1/dashboard/store-owner` - Store owner statistics
+- `GET /api/v1/dashboard/store/{id}/raters` - Users who rated a store
